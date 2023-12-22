@@ -52,6 +52,16 @@
 /*******************************************************************************
 * Macros
 *******************************************************************************/
+#ifdef XMC7200D_E272K8384
+#define KIT_XMC72
+
+#elif defined XMC7100D_F176K4160
+#define KIT_XMC71_V1
+
+#elif defined XMC7100D_F100K4160
+#define KIT_XMC71_V2
+#endif
+
 /* CAN node definition */
 #define CAN_NODE_1              1
 #define CAN_NODE_2              2
@@ -65,10 +75,15 @@
 #define USE_CAN_MODE            CAN_FD_MODE
 
 /* CAN channel number */
+# if defined(KIT_XMC71_V1) || defined(KIT_XMC71_V2)
+#define CAN_HW_CHANNEL          0
+#else
 #define CAN_HW_CHANNEL          1
+#endif
 #define CAN_BUFFER_INDEX        0
 /* CAN data length code, frame has 8 data bytes in this example */
 #define CAN_DLC                 8
+
 
 /*******************************************************************************
 * Function Prototypes
@@ -106,7 +121,7 @@ cy_stc_canfd_context_t canfd_context;
 bool ButtonIntrFlag = false;
 
 /* Array to store the data bytes of the CANFD frame */
-uint32_t canfd_dataBuffer[] = 
+uint32_t canfd_dataBuffer[] =
 {
     [CANFD_DATA_0] = 0x04030201U,
     [CANFD_DATA_1] = 0x08070605U,
@@ -120,7 +135,7 @@ uint32_t canfd_dataBuffer[] =
 * This is the main function. It initializes the CANFD channel 
 * and interrupt. User button and User LED are also initialized. The main loop
 * checks for the button pressed interrupt flag and when it is set, a CANFD frame
-* is sent. Whenever a CANFD frame is received from other nodes, the user LED 
+* is sent. Whenever a CANFD frame is received from other nodes, the user LED
 * toggles and the received data is logged over serial terminal.
 *
 * Parameters:
@@ -143,7 +158,7 @@ int main(void)
     }
 
     /* Initialize retarget-io for uart logging */
-    result = cy_retarget_io_init(CYBSP_DEBUG_UART_TX, CYBSP_DEBUG_UART_RX, 
+    result = cy_retarget_io_init(CYBSP_DEBUG_UART_TX, CYBSP_DEBUG_UART_RX,
                                 CY_RETARGET_IO_BAUDRATE);
     if (result != CY_RSLT_SUCCESS)
     {
@@ -176,7 +191,7 @@ int main(void)
 #if USE_CAN_MODE == CAN_CLASSIC_MODE
     CANFD_config.canFDMode = false;
 #endif
-    status = Cy_CANFD_Init(CANFD_HW, CAN_HW_CHANNEL, &CANFD_config, 
+    status = Cy_CANFD_Init(CANFD_HW, CAN_HW_CHANNEL, &CANFD_config,
                            &canfd_context);
     if (status != CY_CANFD_SUCCESS)
     {
@@ -195,10 +210,10 @@ int main(void)
         {
             ButtonIntrFlag = false;
             /* Sending CANFD frame to other node */
-            status = Cy_CANFD_UpdateAndTransmitMsgBuffer(CANFD_HW, 
-                                                    CAN_HW_CHANNEL, 
+            status = Cy_CANFD_UpdateAndTransmitMsgBuffer(CANFD_HW,
+                                                    CAN_HW_CHANNEL,
                                                     &CANFD_txBuffer_0,
-                                                    CAN_BUFFER_INDEX, 
+                                                    CAN_BUFFER_INDEX,
                                                     &canfd_context);
             #if USE_CAN_MODE == CAN_CLASSIC_MODE
               printf("CAN standard frame sent from Node-%d\r\n\r\n", USE_CAN_NODE);
@@ -217,7 +232,7 @@ int main(void)
 *
 * Parameters:
 *    None
-*    
+*
 *******************************************************************************/
 void isr_button (void)
 {
@@ -286,7 +301,7 @@ void canfd_rx_callback (bool                        rxFIFOMsg,
             canfd_dlc = basemsg->r1_f->dlc;
             canfd_id  = basemsg->r0_f->id;
             /* Print the received message by UART */
-            printf("%d bytes received from Node-%d with identifier %d\r\n\r\n", 
+            printf("%d bytes received from Node-%d with identifier %d\r\n\r\n",
                                                         canfd_dlc,
                                                         canfd_id,
                                                         canfd_id);
